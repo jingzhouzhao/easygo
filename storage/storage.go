@@ -16,11 +16,13 @@ import (
 )
 
 var (
-	ErrIncorrectFileID = errors.New("invalid FileId")
+	ErrIncorrectFileID = errors.New("invalid fileId")
 	ErrNoFilesFound    = errors.New("no files were found")
 )
 
 type Result struct {
+	Ok       bool   `json:"ok"`
+	Msg      string `json:"msg"`
 	FileName string `json:"fileName"`
 	FileId   string `json:"fileId"`
 }
@@ -64,15 +66,16 @@ func Save(part *multipart.Part) (result *Result, err error) {
 			break
 		}
 	}
-	fmt.Printf("Path:%s,FileName:%s\n", path, part.FileName())
+	fmt.Printf("UPLOAD:Path:%s\n", path)
 	result = handleResult(fileId, part.FileName())
 	return
 }
 
 func Get(fileId string) (*FileInfo, error) {
-	minute, uuid, _ := splitFileId(fileId)
-	fmt.Printf("%s,%s\n", uuid, minute)
-	path := filepath.Join(conf.Conf.Data.DataDir, minute, uuid)
+	path, err := getPath(fileId)
+	if err != nil {
+		return nil, err
+	}
 	files, err := ioutil.ReadDir(path)
 	if err != nil {
 		return nil, err
@@ -86,7 +89,27 @@ func Get(fileId string) (*FileInfo, error) {
 	if err != nil {
 		return nil, err
 	}
+	fmt.Printf("GET:%s\n", filePath)
 	return &FileInfo{file, fileInfo.Name()}, nil
+}
+
+func Delete(fileId string) *Result {
+	res := &Result{Ok: false}
+	path, err := getPath(fileId)
+	if err != nil {
+		res.Msg = err.Error()
+		return res
+	}
+	//abs, err := filepath.Abs(filepath.Dir(fileInfo.File.Name()))
+
+	fmt.Printf("DELETE:%s\n", path)
+	err = os.RemoveAll(path)
+	if err != nil {
+		res.Msg = err.Error()
+		return res
+	}
+	res.Ok = true
+	return res
 }
 
 func handlePath(filename string) (string, string, error) {
@@ -108,16 +131,15 @@ func handleFileId(uuid, minute string) string {
 	return strings.Join(fileId, "")
 }
 
-func splitFileId(fileId string) (minute string, uuid string, err error) {
+func getPath(fileId string) (string, error) {
 	if len(fileId) != 44 {
-		err = ErrIncorrectFileID
-		return
+		return "", ErrIncorrectFileID
 	}
-	uuid = fileId[:32]
-	minute = utils.LetterToNumber(fileId[32:])
-	return
+	uuid := fileId[:32]
+	minute := utils.LetterToNumber(fileId[32:])
+	return filepath.Join(conf.Conf.Data.DataDir, minute, uuid), nil
 }
 
 func handleResult(fileId, filename string) *Result {
-	return &Result{FileName: filename, FileId: fileId}
+	return &Result{Ok: true, FileName: filename, FileId: fileId}
 }

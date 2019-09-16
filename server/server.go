@@ -70,7 +70,13 @@ func post(w http.ResponseWriter, r *http.Request) {
 }
 
 func delete(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("delete"))
+	fileId := r.URL.Query().Get("fileId")
+	if fileId == "" {
+		respErr(w, http.StatusBadRequest, errors.New(fmt.Sprintf(ErrMissingParameter, "fileId")))
+		return
+	}
+	res := storage.Delete(fileId)
+	resp(w, res)
 }
 func get(w http.ResponseWriter, r *http.Request) {
 	fileId := r.URL.Query().Get("fileId")
@@ -121,7 +127,7 @@ func respErr(w http.ResponseWriter, errCode int, err error) {
 }
 
 func Start() {
-	http.HandleFunc("/file", handleFile)
+	http.HandleFunc("/", handleFile)
 	server = &http.Server{
 		Addr:    fmt.Sprintf("%s%d", ":", conf.Conf.Http.Ports.HttpPort),
 		Handler: http.DefaultServeMux,

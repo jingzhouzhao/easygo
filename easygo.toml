@@ -2,7 +2,6 @@ nodes = ["1","2","3"]
 [log]
     logDir = "/easygo/logs"
 [http]
-    timeout = 10
     [http.ports]
             httpPort = 25566
             syncPort = 26655
