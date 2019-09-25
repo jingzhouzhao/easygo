@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -18,8 +19,26 @@ var (
 )
 
 var (
+	ErrNotFound = errors.New("Not Found")
+)
+
+var (
 	server *http.Server
 )
+
+func router(w http.ResponseWriter, r *http.Request) {
+	path := r.URL.Path
+	if path == "/" {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("Hello EasyGo!"))
+		return
+	}
+	if strings.HasPrefix(path, "/files/") {
+		handleFile(w, r)
+		return
+	}
+	respErr(w, http.StatusNotFound, ErrNotFound)
+}
 
 func handleFile(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
@@ -70,7 +89,7 @@ func post(w http.ResponseWriter, r *http.Request) {
 }
 
 func delete(w http.ResponseWriter, r *http.Request) {
-	fileId := r.URL.Query().Get("fileId")
+	fileId := getFileId(r.URL.Path)
 	if fileId == "" {
 		respErr(w, http.StatusBadRequest, errors.New(fmt.Sprintf(ErrMissingParameter, "fileId")))
 		return
@@ -79,7 +98,8 @@ func delete(w http.ResponseWriter, r *http.Request) {
 	resp(w, res)
 }
 func get(w http.ResponseWriter, r *http.Request) {
-	fileId := r.URL.Query().Get("fileId")
+	fileId := getFileId(r.URL.Path)
+	fmt.Println("fileid:", fileId)
 	if fileId == "" {
 		respErr(w, http.StatusBadRequest, errors.New(fmt.Sprintf(ErrMissingParameter, "fileId")))
 		return
@@ -111,6 +131,11 @@ func get(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func getFileId(path string) string {
+	idx := strings.LastIndex(path, "/")
+	return path[idx+1:]
+}
+
 func resp(w http.ResponseWriter, results interface{}) {
 	rs, err := json.Marshal(results)
 	if err != nil {
@@ -127,14 +152,14 @@ func respErr(w http.ResponseWriter, errCode int, err error) {
 }
 
 func Start() {
-	http.HandleFunc("/", handleFile)
+	http.HandleFunc("/", router)
 	server = &http.Server{
 		Addr:    fmt.Sprintf("%s%d", ":", conf.Conf.Http.Ports.HttpPort),
 		Handler: http.DefaultServeMux,
 		//WriteTimeout: time.Second * time.Duration(conf.Conf.Http.Timeout),
 	}
 	go func() {
-		fmt.Printf("Http server listening at: %d\n", conf.Conf.Http.Ports.HttpPort)
+		fmt.Printf("EasyGo server listening at: %d\n", conf.Conf.Http.Ports.HttpPort)
 		if err := server.ListenAndServe(); err != nil {
 			if err == http.ErrServerClosed {
 				fmt.Println("Http server closed")
@@ -153,7 +178,7 @@ func Close() error {
 	if server != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		defer cancel()
-		fmt.Println("Http server shutdown")
+		fmt.Println("EasyGo server shutdown")
 		return server.Shutdown(ctx)
 	}
 	return nil

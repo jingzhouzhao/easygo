@@ -1,4 +1,4 @@
-# Easygo
+# EasyGo
 This is a simple HTTP file server that uploads, downloads, and deletes files via the RESTful API.
 
 ### Getting Started
@@ -21,21 +21,21 @@ Start the server:
 ```shell script
 start.sh
 ```
-If you see xxx, it means the server is successfully started.
+If you see `EasyGo server listening at: 25566`, it means the server is successfully started.
 
 Let's enjoy it!
 
-#### upload:
+#### Upload:
 ```shell script
-curl -X POST localhost:25566 -F "file=@/users/filename.jpg"
+curl -X POST localhost:25566/files -F "file=@/users/filename.jpg"
 ```
 
-#### download:
+#### Download:
 ```shell script
-curl -O localhost:25566/?fileId=e4d547d4ab854efa9d1f30c2abf96a03cabjajbgbbei
+curl -O localhost:25566/files/e4d547d4ab854efa9d1f30c2abf96a03cabjajbgbbei
 ```
 
-#### delete:
+#### Delete:
 ```shell script
-curl -X DELETE localhost:25566/?fileId=e4d547d4ab854efa9d1f30c2abf96a03cabjajbgbbei
+curl -X DELETE localhost:25566/files/e4d547d4ab854efa9d1f30c2abf96a03cabjajbgbbei
 ```
